@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="map-page">
-  <a class="skip-link" href="#search">Skip to search</a>
+  <a class="skip-link" href="#address">Skip to search</a>
 
   <header class="site-header">
     <a class="site-title" href="index.html">Opioids in San Francisco</a>
@@ -27,12 +27,33 @@
       <div class="panel-top">
         <h1>Services map</h1>
         <p>Select a location to see its address and services. Call ahead to confirm hours.</p>
-        <label for="search">Search by name or address</label>
-        <input id="search" type="search" placeholder="For example, Market Street" autocomplete="off">
+
+        <form class="near-form" id="near-form">
+          <label for="address">Find services near your address</label>
+          <div class="near-row">
+            <input id="address" type="text" placeholder="Street address, like 123 Main St" autocomplete="street-address">
+            <button class="button small" type="submit">Find nearby</button>
+          </div>
+          <div class="near-links">
+            <button type="button" class="link-btn" id="locate">Use my location</button>
+            <button type="button" class="link-btn" id="near-clear" hidden>Clear address</button>
+          </div>
+          <p class="near-status" id="near-status" role="status" aria-live="polite"></p>
+          <p class="fine-print">Your address is sent to OpenStreetMap's search service to find it on the map. This site doesn't save it.</p>
+        </form>
+
+        <label for="search">Search the list by name</label>
+        <input id="search" type="search" placeholder="For example, BAART" autocomplete="off">
+
         <fieldset>
-          <legend>Service type</legend>
-          <div class="chips" id="chips"></div>
+          <legend>Filter by service (shows locations that offer any you select)</legend>
+          <div id="chips"></div>
+          <button type="button" class="clear-btn" id="clear" hidden>Clear filters</button>
         </fieldset>
+        <details class="glossary">
+          <summary>What do these services mean?</summary>
+          <dl id="glossary-list"></dl>
+        </details>
       </div>
       <div class="result-count" id="count" aria-live="polite"></div>
       <ul class="results" id="results"></ul>
@@ -42,7 +63,9 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data/service-types.js"></script>
   <script src="data/services.js"></script>
+  <script src="js/geocode.js"></script>
   <script src="js/map.js"></script>
 </body>
 </html>
