@@ -9,7 +9,249 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <style>
+/* ---------- Design tokens ---------- */
+:root {
+  --fog: #eef1f2;
+  --paper: #fbfcfc;
+  --ink: #13222f;
+  --ink-soft: #4a5b68;
+  --bay: #1e6f7c;
+  --bay-dark: #155560;
+  --signal: #c8442b;          /* Golden Gate "international orange" family, used sparingly */
+  --rule: #cfd7db;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fog);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+a { color: var(--bay-dark); text-underline-offset: 3px; }
+a:hover { color: var(--signal); }
+:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; }
+
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--ink); color: #fff; padding: .6rem 1rem; z-index: 2000;
+}
+.skip-link:focus { left: 0; }
+
+/* ---------- Site header ---------- */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.site-title {
+  font-family: var(--serif); font-weight: 600; font-size: 1.15rem;
+  color: var(--ink); text-decoration: none;
+}
+.site-nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.site-nav a { color: var(--ink-soft); text-decoration: none; font-weight: 500; padding: .25rem 0; }
+.site-nav a:hover, .site-nav a[aria-current="page"] {
+  color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px;
+  text-decoration-color: var(--signal); text-underline-offset: 6px;
+}
+
+/* ---------- Landing page ---------- */
+.hero {
+  padding: clamp(3rem, 9vw, 7rem) clamp(1rem, 4vw, 3rem) clamp(2.5rem, 6vw, 4.5rem);
+  max-width: 1100px; margin: 0 auto;
+}
+.hero h1 {
+  font-family: var(--serif); font-weight: 600;
+  font-size: clamp(2.4rem, 6.5vw, 4.75rem);
+  line-height: 1.05; letter-spacing: -0.02em;
+  margin: 0 0 1.5rem; max-width: 16ch;
+}
+.hero p.lede {
+  font-family: var(--serif); font-size: clamp(1.15rem, 2vw, 1.4rem);
+  line-height: 1.55; color: var(--ink-soft); max-width: 46ch; margin: 0 0 2rem;
+}
+.button {
+  display: inline-block; background: var(--bay); color: #fff;
+  padding: .85rem 1.5rem; border-radius: 4px; font-weight: 600;
+  text-decoration: none; border: 2px solid var(--bay);
+}
+.button:hover { background: var(--bay-dark); border-color: var(--bay-dark); color: #fff; }
+.button.secondary { background: transparent; color: var(--bay-dark); }
+.button.secondary:hover { background: var(--paper); color: var(--bay-dark); }
+.hero .actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+
+.sections { max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem) 3rem; }
+.section-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 1.5rem; align-items: baseline;
+  padding: 1.75rem 0; border-top: 1px solid var(--rule);
+}
+.section-row:last-child { border-bottom: 1px solid var(--rule); }
+.section-row h2 { font-family: var(--serif); font-size: 1.6rem; font-weight: 600; margin: 0; line-height: 1.2; }
+.section-row p { margin: 0; color: var(--ink-soft); }
+.status { font-size: .95rem; font-weight: 600; white-space: nowrap; }
+.status.live a { color: var(--bay-dark); }
+.status.soon { color: var(--ink-soft); font-weight: 500; }
+@media (max-width: 760px) {
+  .section-row { grid-template-columns: 1fr; gap: .5rem; }
+}
+
+.emergency {
+  max-width: 1100px; margin: 0 auto 3rem; padding: 0 clamp(1rem, 4vw, 3rem);
+}
+.emergency p {
+  margin: 0; padding: 1rem 1.25rem; background: var(--paper);
+  border-left: 5px solid var(--signal); max-width: 60ch;
+}
+
+.site-footer {
+  padding: 2rem clamp(1rem, 4vw, 3rem); color: var(--ink-soft);
+  font-size: .95rem; border-top: 1px solid var(--rule); background: var(--paper);
+}
+.site-footer p { margin: 0; max-width: 70ch; }
+
+/* ---------- Map page ---------- */
+body.map-page { display: flex; flex-direction: column; min-height: 100vh; }
+.map-layout {
+  flex: 1; display: grid; grid-template-columns: 380px minmax(0, 1fr);
+  min-height: 0;
+}
+.panel {
+  background: var(--paper); border-right: 1px solid var(--rule);
+  display: flex; flex-direction: column; min-height: 0;
+  height: calc(100vh - 64px);
+}
+.panel-top { padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--rule); }
+.panel-top h1 { font-family: var(--serif); font-size: 1.6rem; line-height: 1.2; margin: 0 0 .5rem; }
+.panel-top p { margin: 0 0 1rem; color: var(--ink-soft); font-size: .98rem; line-height: 1.5; }
+.panel label { display: block; font-weight: 600; font-size: .95rem; margin-bottom: .3rem; }
+.panel input[type="search"] {
+  width: 100%; font: inherit; padding: .6rem .75rem;
+  border: 1.5px solid var(--ink-soft); border-radius: 4px; background: #fff; color: var(--ink);
+}
+fieldset { border: 0; padding: 0; margin: 1rem 0 0; }
+legend { font-weight: 600; font-size: .95rem; padding: 0; margin-bottom: .4rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  font: inherit; font-size: .9rem; padding: .3rem .75rem; cursor: pointer;
+  border: 1.5px solid var(--bay); background: #fff; color: var(--bay-dark);
+  border-radius: 999px;
+}
+.chip:hover { background: var(--fog); }
+.chip[aria-pressed="true"] { background: var(--bay); color: #fff; }
+
+.result-count { padding: .6rem 1.25rem; font-size: .9rem; color: var(--ink-soft); border-bottom: 1px solid var(--rule); }
+.results { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.results li { border-bottom: 1px solid var(--rule); }
+.result-btn {
+  display: block; width: 100%; text-align: left; font: inherit; color: inherit;
+  background: transparent; border: 0; padding: 1rem 1.25rem; cursor: pointer;
+}
+.result-btn:hover, .result-btn.active { background: var(--fog); }
+.result-btn.active { box-shadow: inset 4px 0 0 var(--signal); }
+.result-name { display: block; font-family: var(--serif); font-weight: 600; font-size: 1.1rem; line-height: 1.3; }
+.result-addr { display: block; font-size: .92rem; color: var(--ink-soft); margin-top: .15rem; }
+.result-svc { display: block; font-size: .92rem; margin-top: .35rem; }
+.result-svc.pending { color: var(--ink-soft); font-style: italic; }
+.no-results { padding: 1.25rem; color: var(--ink-soft); }
+
+#map { height: calc(100vh - 64px); width: 100%; }
+
+.popup h3 { font-family: var(--serif); font-size: 1.1rem; margin: 0 0 .25rem; line-height: 1.3; }
+.popup p { margin: 0 0 .4rem; font-size: .92rem; line-height: 1.45; }
+.popup ul { margin: 0 0 .5rem; padding-left: 1.1rem; font-size: .92rem; }
+.popup .pending { color: var(--ink-soft); font-style: italic; }
+
+@media (max-width: 860px) {
+  .map-layout { grid-template-columns: 1fr; grid-template-rows: 55vh auto; }
+  #map { order: -1; height: 55vh; }
+  .panel { height: auto; border-right: 0; }
+  .results { max-height: 50vh; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* ---------- Grouped filters + glossary ---------- */
+.panel-top { max-height: 52vh; overflow-y: auto; }
+.chip-group { margin-bottom: .75rem; }
+.chip-group-title { margin: 0 0 .3rem; font-size: .88rem; font-weight: 600; color: var(--ink-soft); }
+.clear-btn {
+  font: inherit; font-size: .92rem; margin-top: .25rem; padding: .25rem 0;
+  background: none; border: 0; color: var(--bay-dark); text-decoration: underline; cursor: pointer;
+}
+.glossary { margin-top: .75rem; font-size: .93rem; }
+.glossary summary { cursor: pointer; font-weight: 600; }
+.glossary dt { font-weight: 600; margin-top: .6rem; }
+.glossary dd { margin: .1rem 0 0; color: var(--ink-soft); line-height: 1.45; }
+@media (max-width: 860px) { .panel-top { max-height: none; } }
+.result-note { display: block; font-size: .88rem; margin-top: .35rem; color: var(--ink); border-left: 3px solid var(--signal); padding-left: .5rem; }
+.popup .note { border-left: 3px solid var(--signal); padding-left: .5rem; }
+
+/* ---------- Address search + landing-page map ---------- */
+button.button { font: inherit; font-weight: 600; cursor: pointer; }
+.button.small { padding: .55rem 1rem; font-size: .95rem; }
+
+.near-form label { display: block; font-weight: 600; margin-bottom: .3rem; }
+.near-row { display: flex; gap: .5rem; align-items: stretch; }
+.near-row input {
+  flex: 1; min-width: 0; font: inherit; padding: .6rem .75rem;
+  border: 1.5px solid var(--ink-soft); border-radius: 4px; background: #fff; color: var(--ink);
+}
+.near-links { display: flex; gap: 1rem; margin-top: .4rem; }
+.link-btn {
+  font: inherit; font-size: .92rem; padding: .2rem 0; background: none; border: 0;
+  color: var(--bay-dark); text-decoration: underline; cursor: pointer;
+}
+.near-status { margin: .5rem 0 0; font-size: .92rem; color: var(--ink); min-height: 1.2em; }
+.fine-print { margin: .5rem 0 1rem; font-size: .85rem; color: var(--ink-soft); line-height: 1.4; }
+.panel .near-form { margin-bottom: 1rem; }
+.result-dist { display: block; font-size: .9rem; font-weight: 600; color: var(--bay-dark); margin-top: .1rem; }
+
+.find {
+  max-width: 1100px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem) 3.5rem;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: clamp(1.5rem, 4vw, 3rem); align-items: center;
+}
+.find h2 { font-family: var(--serif); font-size: clamp(1.7rem, 3.5vw, 2.3rem); line-height: 1.15; margin: 0 0 .5rem; }
+.find p { margin: 0 0 1.25rem; color: var(--ink-soft); }
+.find .fine-print { margin: .75rem 0 0; }
+.square-map {
+  aspect-ratio: 1 / 1; width: 100%;
+  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--paper);
+}
+@media (max-width: 860px) {
+  .find { grid-template-columns: 1fr; }
+  .square-map { max-width: 520px; }
+}
+
+/* ---------- Map embedded on the home page ---------- */
+html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
+.services { max-width: 1280px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem) 3.5rem; }
+.services h2 { font-family: var(--serif); font-size: clamp(1.7rem, 3.5vw, 2.3rem); line-height: 1.15; margin: 0 0 .5rem; }
+.services-intro { margin: 0 0 1.5rem; color: var(--ink-soft); max-width: 62ch; }
+.services .map-layout {
+  flex: none; height: 720px; min-height: 0;
+  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--paper);
+}
+.services .panel { height: 100%; }
+.services .panel-top { max-height: 50%; }
+.services #map { height: 100%; }
+@media (max-width: 860px) {
+  .services .map-layout { height: auto; grid-template-columns: 1fr; grid-template-rows: 420px auto; }
+  .services #map { height: 420px; order: -1; }
+  .services .panel { height: auto; }
+  .services .panel-top { max-height: none; }
+  .services .results { max-height: 60vh; }
+}
+
+</style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
@@ -17,8 +259,8 @@
   <header class="site-header">
     <a class="site-title" href="index.html">Opioids in San Francisco</a>
     <nav class="site-nav" aria-label="Main">
-      <a href="index.html" aria-current="page">Home</a>
-      <a href="map.html">Services map</a>
+      <a href="#services">Find services</a>
+      <a href="#more">History and more</a>
     </nav>
   </header>
 
@@ -30,40 +272,60 @@
         harm reduction services near you.
       </p>
       <div class="actions">
-        <a class="button" href="map.html">Open the full services map</a>
+        <a class="button" href="#services">Find services near you</a>
       </div>
     </section>
 
-    <section class="find" aria-labelledby="find-heading">
-      <div class="find-text">
-        <h2 id="find-heading">Find services near you</h2>
-        <p>Enter your address to see the closest locations first.</p>
-        <form class="near-form" action="map.html" method="get">
-          <label for="address">Your address</label>
-          <div class="near-row">
-            <input id="address" name="address" type="text" required
-                   placeholder="Street address, like 123 Main St" autocomplete="street-address">
-            <button class="button" type="submit">Find nearby</button>
+    <section class="services" id="services" aria-labelledby="services-heading">
+      <h2 id="services-heading">Find services near you</h2>
+      <p class="services-intro">
+        Enter your address to see the closest locations first, or filter by the kind of service you need.
+        Select a location to see its address and services. Call ahead to confirm hours.
+      </p>
+
+      <div class="map-layout">
+        <aside class="panel" aria-label="Search and results">
+          <div class="panel-top">
+            <form class="near-form" id="near-form">
+              <label for="address">Your address</label>
+              <div class="near-row">
+                <input id="address" type="text" placeholder="Street address, like 123 Main St" autocomplete="street-address">
+                <button class="button small" type="submit">Find nearby</button>
+              </div>
+              <div class="near-links">
+                <button type="button" class="link-btn" id="locate">Use my location</button>
+                <button type="button" class="link-btn" id="near-clear" hidden>Clear address</button>
+              </div>
+              <p class="near-status" id="near-status" role="status" aria-live="polite"></p>
+              <p class="fine-print">Your address is sent to OpenStreetMap's search service to find it on the map. This site doesn't save it.</p>
+            </form>
+
+            <label for="search">Search the list by name</label>
+            <input id="search" type="search" placeholder="For example, BAART" autocomplete="off">
+
+            <fieldset>
+              <legend>Filter by service (shows locations that offer any you select)</legend>
+              <div id="chips"></div>
+              <button type="button" class="clear-btn" id="clear" hidden>Clear filters</button>
+            </fieldset>
+            <details class="glossary">
+              <summary>What do these services mean?</summary>
+              <dl id="glossary-list"></dl>
+            </details>
           </div>
-        </form>
-        <p class="fine-print">
-          Your address is sent to OpenStreetMap's search service to find its location on the map.
-          This site doesn't save it.
-        </p>
+          <div class="result-count" id="count" aria-live="polite"></div>
+          <ul class="results" id="results"></ul>
+        </aside>
+
+        <div id="map" role="region" aria-label="Map of services"></div>
       </div>
-      <div class="square-map" id="preview-map" role="region" aria-label="Preview map of service locations in San Francisco"></div>
     </section>
 
-    <section class="sections" aria-label="What's on this site">
+    <section class="sections" id="more" aria-label="More on this site">
       <div class="section-row">
         <h2>History</h2>
         <p>How the opioid epidemic has affected San Francisco and its neighborhoods over time.</p>
         <span class="status soon">In progress</span>
-      </div>
-      <div class="section-row">
-        <h2>Services map</h2>
-        <p>Treatment, counseling, and harm reduction locations across the city, with the services each one offers.</p>
-        <span class="status live"><a href="map.html">Open the map</a></span>
       </div>
       <div class="section-row">
         <h2>More to come</h2>
@@ -85,7 +347,615 @@
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="data/services.js"></script>
-  <script src="js/preview.js"></script>
+  <script>
+// The standardized list of service types. The map's filters are built from this list.
+// To add a service type: add it to a group below, then use the exact same name in data/services.js.
+const SERVICE_GROUPS = [
+  {
+    group: "Medications for opioid use",
+    types: [
+      { name: "Methadone treatment", description: "A daily medication that relieves withdrawal and cravings. It can only be given at licensed opioid treatment programs, usually with counseling." },
+      { name: "Buprenorphine treatment", description: "A medication (often called Suboxone) that reduces cravings and withdrawal. Trained primary care providers can prescribe it, and it's filled at a pharmacy." },
+      { name: "Naltrexone treatment", description: "A medication that blocks the effects of opioids. It is not itself an opioid." }
+    ]
+  },
+  {
+    group: "Treatment programs",
+    types: [
+      { name: "Treatment navigation / telehealth", description: "Staff or remote doctors who help people start treatment, including same-day or overnight prescriptions and rides to intake appointments." },
+      { name: "Withdrawal management", description: "Supervised overnight care while a person withdraws from substances." },
+      { name: "Residential treatment", description: "A live-in treatment program, including step-down programs for the stage after." }
+    ]
+  },
+  {
+    group: "Support",
+    types: [
+      { name: "Counseling", description: "One-on-one or group sessions with a counselor or therapist." },
+      { name: "Behavioral health services", description: "Mental health and substance use care provided together." },
+      { name: "Case management", description: "Help with housing, benefits, and connecting to other services." },
+      { name: "Support groups", description: "Peer groups such as Narcotics Anonymous (NA) and Alcoholics Anonymous (AA)." },
+      { name: "Drop-in / basic needs", description: "Walk-in centers offering meals, a place to rest, clothing, or other basic needs, often with staff who can connect you to services." }
+    ]
+  },
+  {
+    group: "Harm reduction and health care",
+    types: [
+      { name: "Syringe access", description: "Free sterile syringes, safer-use supplies, and safe disposal." },
+      { name: "Naloxone (Narcan)", description: "The overdose-reversal medication, often with training on how to use it." },
+      { name: "HIV / hepatitis C / STI testing and care", description: "Testing and treatment for HIV, hepatitis C, and other sexually transmitted infections." },
+      { name: "Primary care / medical care", description: "General medical care, including nurse practitioners and street medicine." }
+    ]
+  }
+];
+
+</script>
+  <script>
+// Edit this file to add or update locations.
+// Each entry needs: name, address, services, lat, lng. Optional: note (shown in the popup), approx.
+// services must use the exact names from data/service-types.js. Use an empty list if not known yet.
+// approx: true shows a note that the map pin is approximate. Remove it once you've confirmed the coordinates.
+const SERVICES = [
+  {
+    "id": 1,
+    "name": "Bayview Hunters Point Foundation",
+    "address": "1625 Carroll Avenue, San Francisco, CA 94124",
+    "services": [
+      "Methadone treatment",
+      "Buprenorphine treatment",
+      "Behavioral health services"
+    ],
+    "lat": 37.72508,
+    "lng": -122.39415
+  },
+  {
+    "id": 2,
+    "name": "BAART Programs",
+    "address": "1111 Market Street, 1st Floor, San Francisco, CA 94103",
+    "services": [
+      "Methadone treatment",
+      "Buprenorphine treatment",
+      "Counseling"
+    ],
+    "lat": 37.779959,
+    "lng": -122.412648
+  },
+  {
+    "id": 3,
+    "name": "OBIC Clinic",
+    "address": "1380 Howard Street, 2nd Floor, San Francisco 94103",
+    "services": [
+      "Buprenorphine treatment"
+    ],
+    "lat": 37.774363,
+    "lng": -122.414333
+  },
+  {
+    "id": 4,
+    "name": "San Francisco Drug Users' Union",
+    "address": "172 Turk St, San Francisco, CA",
+    "services": [
+      "Syringe access",
+      "Naloxone (Narcan)"
+    ],
+    "note": "Some sources list this address as 170 Turk St. Check current hours before you go.",
+    "lat": 37.7836,
+    "lng": -122.41
+  },
+  {
+    "id": 5,
+    "name": "San Francisco AIDS Foundation Syringe Access Services",
+    "address": "117 6th St, San Francisco, CA 94103",
+    "services": [
+      "Syringe access",
+      "Naloxone (Narcan)",
+      "HIV / hepatitis C / STI testing and care",
+      "Counseling",
+      "Buprenorphine treatment",
+      "Primary care / medical care"
+    ],
+    "note": "Also offers drug checking.",
+    "lat": 37.7785,
+    "lng": -122.407
+  },
+  {
+    "id": 6,
+    "name": "Strut",
+    "address": "470 Castro Street, San Francisco, CA 94114",
+    "services": [
+      "Counseling",
+      "Support groups",
+      "HIV / hepatitis C / STI testing and care"
+    ],
+    "note": "Focuses on LGBTQ+ community members.",
+    "lat": 37.761502,
+    "lng": -122.435233
+  },
+  {
+    "id": 7,
+    "name": "Harm Reduction Therapy Center",
+    "address": "21 Merlin St, San Francisco, CA 94107",
+    "services": [
+      "Counseling",
+      "Behavioral health services",
+      "Drop-in / basic needs"
+    ],
+    "lat": 37.7815,
+    "lng": -122.405
+  },
+  {
+    "id": 8,
+    "name": "Sixth Street Self-Help Center",
+    "address": "169 6th St, San Francisco, CA 94103",
+    "services": [
+      "Drop-in / basic needs",
+      "Counseling",
+      "Behavioral health services"
+    ],
+    "note": "The city has ended this center's contract. It is reported to close by Dec. 31, with services moving to the Tenderloin Self-Help Center at 146 Leavenworth St.",
+    "lat": 37.778,
+    "lng": -122.4065
+  },
+  {
+    "id": 9,
+    "name": "Hope Center",
+    "address": "1089 Mission St, San Francisco, CA 94103",
+    "services": [
+      "Case management",
+      "Primary care / medical care",
+      "Drop-in / basic needs"
+    ],
+    "note": "Drop-in center for women who are survivors of exploitation and homelessness.",
+    "lat": 37.7795,
+    "lng": -122.41
+  },
+  {
+    "id": 10,
+    "name": "The Gubbio Project",
+    "address": "1661 15th St, San Francisco, CA 94103",
+    "services": [
+      "Drop-in / basic needs"
+    ],
+    "note": "Offers daytime rest space, chaplaincy, supplies, and referrals. Also operates at 133 Golden Gate Ave.",
+    "lat": 37.766507,
+    "lng": -122.421221
+  },
+  {
+    "id": 11,
+    "name": "Homeless Youth Alliance",
+    "address": "558 Clayton Street, San Francisco, CA",
+    "services": [
+      "Syringe access",
+      "Naloxone (Narcan)",
+      "HIV / hepatitis C / STI testing and care",
+      "Primary care / medical care",
+      "Buprenorphine treatment",
+      "Case management",
+      "Behavioral health services"
+    ],
+    "note": "Serves young people ages 13 to 29.",
+    "lat": 37.769,
+    "lng": -122.452
+  },
+  {
+    "id": 12,
+    "name": "St. Anthony Foundation",
+    "address": "150 Golden Gate Ave, San Francisco, CA 94102",
+    "services": [
+      "Case management",
+      "Drop-in / basic needs"
+    ],
+    "note": "The Social Work Center is listed at 121 Golden Gate Ave.",
+    "lat": 37.781,
+    "lng": -122.413
+  },
+  {
+    "id": 13,
+    "name": "BAART Turk",
+    "address": "433 Turk St, San Francisco, CA 94102",
+    "services": [
+      "Methadone treatment",
+      "Buprenorphine treatment",
+      "Counseling",
+      "Primary care / medical care",
+      "Behavioral health services"
+    ],
+    "lat": 37.7828,
+    "lng": -122.414,
+    "approx": true
+  },
+  {
+    "id": 14,
+    "name": "Tom Waddell Urban Health Clinic",
+    "address": "230 Golden Gate Ave, San Francisco, CA 94102",
+    "services": [
+      "Buprenorphine treatment",
+      "Behavioral health services",
+      "HIV / hepatitis C / STI testing and care",
+      "Primary care / medical care",
+      "Naloxone (Narcan)",
+      "Syringe access"
+    ],
+    "lat": 37.7812,
+    "lng": -122.4138,
+    "approx": true
+  },
+  {
+    "id": 15,
+    "name": "GLIDE Harm Reduction (Syringe Access Services)",
+    "address": "330 Ellis St (Taylor St side), San Francisco, CA 94102",
+    "services": [
+      "Syringe access",
+      "Naloxone (Narcan)",
+      "HIV / hepatitis C / STI testing and care",
+      "Treatment navigation / telehealth",
+      "Case management",
+      "Support groups"
+    ],
+    "lat": 37.7847,
+    "lng": -122.412,
+    "approx": true
+  },
+  {
+    "id": 16,
+    "name": "San Francisco Community Health Center",
+    "address": "730 Polk St, 4th Floor, San Francisco, CA 94109",
+    "services": [
+      "Treatment navigation / telehealth",
+      "Counseling",
+      "Support groups",
+      "Naloxone (Narcan)",
+      "HIV / hepatitis C / STI testing and care"
+    ],
+    "lat": 37.7835,
+    "lng": -122.4185,
+    "approx": true
+  },
+  {
+    "id": 17,
+    "name": "Chinatown Public Health Center",
+    "address": "845 Jackson St, 4th Floor, San Francisco, CA 94133",
+    "services": [
+      "Primary care / medical care",
+      "Behavioral health services"
+    ],
+    "note": "Listed at this address while the permanent site at 1490 Mason St is being renovated.",
+    "lat": 37.7955,
+    "lng": -122.409,
+    "approx": true
+  },
+  {
+    "id": 18,
+    "name": "Chinatown/North Beach Mental Health Services",
+    "address": "729 Filbert St, San Francisco, CA 94133",
+    "services": [
+      "Behavioral health services"
+    ],
+    "lat": 37.8003,
+    "lng": -122.409,
+    "approx": true
+  }
+];
+
+</script>
+  <script>
+// Shared helpers: turn an address into coordinates, and measure distance.
+// Address lookup uses OpenStreetMap's free Nominatim service (no API key needed).
+// Its usage policy allows light, user-triggered searches like this one.
+
+async function geocodeAddress(query) {
+  const params = new URLSearchParams({
+    q: query,
+    format: "jsonv2",
+    limit: "1",
+    countrycodes: "us",
+    viewbox: "-122.52,37.83,-122.35,37.70", // favors results in San Francisco, but doesn't exclude other places
+    bounded: "0",
+  });
+  const res = await fetch("https://nominatim.openstreetmap.org/search?" + params.toString());
+  if (!res.ok) throw new Error("Address lookup failed");
+  const data = await res.json();
+  if (!data.length) return null;
+  return {
+    lat: parseFloat(data[0].lat),
+    lng: parseFloat(data[0].lon),
+    label: data[0].display_name,
+  };
+}
+
+// Straight-line distance in miles between two {lat, lng} points.
+function milesBetween(a, b) {
+  const R = 3958.8;
+  const rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+</script>
+  <script>
+// Services map. Data: data/services.js (SERVICES) and data/service-types.js (SERVICE_GROUPS).
+// Address lookup and distance helpers: js/geocode.js.
+
+const UNSPECIFIED = "Not yet categorized";
+const SF_CENTER = [37.7749, -122.4194];
+
+const map = L.map("map").setView(SF_CENTER, 12);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: "abcd",
+  maxZoom: 19,
+}).addTo(map);
+
+const markerLayer = L.layerGroup().addTo(map);
+const originLayer = L.layerGroup().addTo(map);
+const markersById = new Map();
+
+// types: Set of selected service names (empty = show everything).
+// origin: {lat, lng, label} once the visitor enters an address or shares their location.
+const state = { query: "", types: new Set(), origin: null };
+
+const els = {
+  search: document.getElementById("search"),
+  chips: document.getElementById("chips"),
+  results: document.getElementById("results"),
+  count: document.getElementById("count"),
+  clear: document.getElementById("clear"),
+  glossary: document.getElementById("glossary-list"),
+  nearForm: document.getElementById("near-form"),
+  address: document.getElementById("address"),
+  locate: document.getElementById("locate"),
+  nearStatus: document.getElementById("near-status"),
+  nearClear: document.getElementById("near-clear"),
+};
+
+// Build DOM with textContent (never innerHTML) so data can't inject markup.
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function offers(s, type) {
+  return type === UNSPECIFIED ? s.services.length === 0 : s.services.includes(type);
+}
+
+function matches(s) {
+  const q = state.query.trim().toLowerCase();
+  if (q && !(s.name + " " + s.address).toLowerCase().includes(q)) return false;
+  if (state.types.size === 0) return true;
+  return [...state.types].some((t) => offers(s, t));   // matches ANY selected service
+}
+
+// ---------- Filter chips (grouped, from data/service-types.js) ----------
+function makeChip(type) {
+  const n = SERVICES.filter((s) => offers(s, type)).length;
+  const b = el("button", "chip", `${type} (${n})`);
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(state.types.has(type)));
+  b.addEventListener("click", () => {
+    state.types.has(type) ? state.types.delete(type) : state.types.add(type);
+    renderChips();
+    render();
+  });
+  return b;
+}
+
+function renderChips() {
+  els.chips.replaceChildren();
+  const used = new Set(SERVICES.flatMap((s) => s.services));
+  const known = new Set();
+
+  const addGroup = (title, names) => {
+    if (!names.length) return;
+    const wrap = el("div", "chip-group");
+    wrap.appendChild(el("p", "chip-group-title", title));
+    const row = el("div", "chips");
+    names.forEach((n) => row.appendChild(makeChip(n)));
+    wrap.appendChild(row);
+    els.chips.appendChild(wrap);
+  };
+
+  SERVICE_GROUPS.forEach((g) => {
+    g.types.forEach((t) => known.add(t.name));
+    addGroup(g.group, g.types.map((t) => t.name).filter((n) => used.has(n)));
+  });
+  addGroup("Other", [...used].filter((n) => !known.has(n)).sort());
+  if (SERVICES.some((s) => s.services.length === 0)) addGroup("Missing details", [UNSPECIFIED]);
+
+  els.clear.hidden = state.types.size === 0;
+}
+
+function renderGlossary() {
+  SERVICE_GROUPS.forEach((g) => {
+    g.types.forEach((t) => {
+      els.glossary.appendChild(el("dt", "", t.name));
+      els.glossary.appendChild(el("dd", "", t.description));
+    });
+  });
+}
+
+// ---------- Map + list ----------
+function formatMiles(d) {
+  return d < 0.1 ? "under 0.1 mi away" : `${d.toFixed(1)} mi away`;
+}
+
+function popupContent(s, dist) {
+  const box = el("div", "popup");
+  box.appendChild(el("h3", "", s.name));
+  box.appendChild(el("p", "", s.address));
+  if (dist !== null) box.appendChild(el("p", "", formatMiles(dist)));
+  if (s.services.length) {
+    const ul = el("ul");
+    s.services.forEach((t) => ul.appendChild(el("li", "", t)));
+    box.appendChild(ul);
+  } else {
+    box.appendChild(el("p", "pending", "Service details not yet added"));
+  }
+  if (s.note) box.appendChild(el("p", "note", s.note));
+  if (s.approx) box.appendChild(el("p", "pending", "Pin location is approximate."));
+  const link = el("a", "", "Get directions");
+  const from = state.origin ? `&origin=${state.origin.lat},${state.origin.lng}` : "";
+  link.href = `https://www.google.com/maps/dir/?api=1${from}&destination=${encodeURIComponent(s.address)}`;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  box.appendChild(link);
+  return box;
+}
+
+function makeMarker(s, dist) {
+  const m = L.circleMarker([s.lat, s.lng], {
+    radius: 10, weight: 2, color: "#ffffff",
+    fillColor: "#1e6f7c", fillOpacity: 0.95,
+  });
+  m.bindPopup(popupContent(s, dist));
+  m.bindTooltip(s.name);
+  m.on("click", () => setActive(s.id));
+  return m;
+}
+
+function setActive(id) {
+  document.querySelectorAll(".result-btn").forEach((b) => {
+    b.classList.toggle("active", Number(b.dataset.id) === id);
+  });
+  markersById.forEach((m, mid) => {
+    m.setStyle({ fillColor: mid === id ? "#c8442b" : "#1e6f7c" });
+    if (mid === id) m.bringToFront();
+  });
+}
+
+function selectLocation(s) {
+  const m = markersById.get(s.id);
+  map.flyTo([s.lat, s.lng], Math.max(map.getZoom(), 15), { duration: 0.6 });
+  m.openPopup();
+  setActive(s.id);
+}
+
+function render() {
+  markerLayer.clearLayers();
+  markersById.clear();
+  els.results.replaceChildren();
+
+  let shown = SERVICES.filter(matches).map((s) => ({
+    s,
+    d: state.origin ? milesBetween(state.origin, s) : null,
+  }));
+  if (state.origin) shown.sort((a, b) => a.d - b.d);   // nearest first
+
+  els.count.textContent = `${shown.length} of ${SERVICES.length} locations`;
+
+  if (shown.length === 0) {
+    els.results.appendChild(el("li", "no-results", "No locations match. Try removing a filter or changing your search."));
+    return;
+  }
+
+  shown.forEach(({ s, d }) => {
+    const marker = makeMarker(s, d);
+    markersById.set(s.id, marker);
+    markerLayer.addLayer(marker);
+
+    const li = el("li");
+    const btn = el("button", "result-btn");
+    btn.type = "button";
+    btn.dataset.id = s.id;
+    btn.appendChild(el("span", "result-name", s.name));
+    if (d !== null) btn.appendChild(el("span", "result-dist", formatMiles(d)));
+    btn.appendChild(el("span", "result-addr", s.address));
+    btn.appendChild(
+      s.services.length
+        ? el("span", "result-svc", s.services.join(", "))
+        : el("span", "result-svc pending", "Service details not yet added")
+    );
+    if (s.note) btn.appendChild(el("span", "result-note", s.note));
+    btn.addEventListener("click", () => selectLocation(s));
+    li.appendChild(btn);
+    els.results.appendChild(li);
+  });
+
+  // With an address entered, zoom to the visitor plus the three nearest results.
+  const points = state.origin
+    ? [[state.origin.lat, state.origin.lng], ...shown.slice(0, 3).map(({ s }) => [s.lat, s.lng])]
+    : shown.map(({ s }) => [s.lat, s.lng]);
+  map.fitBounds(L.latLngBounds(points), { padding: [50, 50], maxZoom: 15 });
+}
+
+// ---------- "Find services near me" ----------
+function setStatus(text) { els.nearStatus.textContent = text; }
+
+function setOrigin(o, description) {
+  state.origin = o;
+  originLayer.clearLayers();
+  const dot = L.circleMarker([o.lat, o.lng], {
+    radius: 9, weight: 3, color: "#ffffff", fillColor: "#13222f", fillOpacity: 1,
+  }).bindTooltip("Your location", { permanent: false });
+  originLayer.addLayer(dot);
+
+  const nearest = Math.min(...SERVICES.map((s) => milesBetween(o, s)));
+  let msg = `Sorted by distance from ${description}.`;
+  if (nearest > 25) msg += " This location is far from San Francisco, so distances are long.";
+  setStatus(msg);
+  els.nearClear.hidden = false;
+  render();
+}
+
+function clearOrigin() {
+  state.origin = null;
+  originLayer.clearLayers();
+  setStatus("");
+  els.nearClear.hidden = true;
+  render();
+}
+
+async function searchAddress(query) {
+  const q = query.trim();
+  if (!q) { setStatus("Enter an address to search."); return; }
+  setStatus("Looking up that address...");
+  try {
+    const result = await geocodeAddress(q);
+    if (!result) {
+      setStatus("We couldn't find that address. Try adding the street number and city.");
+      return;
+    }
+    const short = result.label.split(",").slice(0, 3).join(",");
+    setOrigin(result, short);
+  } catch (err) {
+    setStatus("The address lookup isn't working right now. Please try again in a moment.");
+  }
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    setStatus("Your browser can't share your location. Please type an address instead.");
+    return;
+  }
+  setStatus("Finding your location...");
+  navigator.geolocation.getCurrentPosition(
+    (pos) => setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude }, "your current location"),
+    () => setStatus("We couldn't get your location. You can type an address instead."),
+    { timeout: 10000 }
+  );
+}
+
+els.nearForm.addEventListener("submit", (e) => { e.preventDefault(); searchAddress(els.address.value); });
+els.locate.addEventListener("click", useMyLocation);
+els.nearClear.addEventListener("click", () => { els.address.value = ""; clearOrigin(); });
+els.search.addEventListener("input", (e) => { state.query = e.target.value; render(); });
+els.clear.addEventListener("click", () => { state.types.clear(); renderChips(); render(); });
+
+renderGlossary();
+renderChips();
+render();
+
+// If the visitor came from the landing page's address box (map.html?address=...), run that search.
+const incoming = new URLSearchParams(window.location.search).get("address");
+if (incoming) {
+  els.address.value = incoming;
+  searchAddress(incoming);
+}
+
+</script>
 </body>
 </html>
