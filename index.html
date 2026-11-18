@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -29,8 +30,28 @@
         harm reduction services near you.
       </p>
       <div class="actions">
-        <a class="button" href="map.html">Find services on the map</a>
+        <a class="button" href="map.html">Open the full services map</a>
       </div>
+    </section>
+
+    <section class="find" aria-labelledby="find-heading">
+      <div class="find-text">
+        <h2 id="find-heading">Find services near you</h2>
+        <p>Enter your address to see the closest locations first.</p>
+        <form class="near-form" action="map.html" method="get">
+          <label for="address">Your address</label>
+          <div class="near-row">
+            <input id="address" name="address" type="text" required
+                   placeholder="Street address, like 123 Main St" autocomplete="street-address">
+            <button class="button" type="submit">Find nearby</button>
+          </div>
+        </form>
+        <p class="fine-print">
+          Your address is sent to OpenStreetMap's search service to find its location on the map.
+          This site doesn't save it.
+        </p>
+      </div>
+      <div class="square-map" id="preview-map" role="region" aria-label="Preview map of service locations in San Francisco"></div>
     </section>
 
     <section class="sections" aria-label="What's on this site">
@@ -62,5 +83,9 @@
       Contact a location directly to confirm its hours and services before you go.
     </p>
   </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data/services.js"></script>
+  <script src="js/preview.js"></script>
 </body>
 </html>
