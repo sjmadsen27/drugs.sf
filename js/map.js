@@ -5,11 +5,25 @@ const UNSPECIFIED = "Not yet categorized";
 const SF_CENTER = [37.7749, -122.4194];
 
 const map = L.map("map").setView(SF_CENTER, 12);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: "abcd",
-  maxZoom: 19,
-}).addTo(map);
+// Basemaps. Visitors can switch between them with the control in the top-right corner.
+const OSM_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const basemaps = {
+  "Streets": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: OSM_CREDIT,
+    maxZoom: 19,
+  }),
+  "Light": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri, DeLorme, NAVTEQ",
+    maxNativeZoom: 16,
+    maxZoom: 19,
+  }),
+  "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics",
+    maxZoom: 19,
+  }),
+};
+basemaps["Streets"].addTo(map);   // the default; change this line to pick a different starting basemap
+L.control.layers(basemaps, null, { position: "topright", collapsed: false }).addTo(map);
 
 const markerLayer = L.layerGroup().addTo(map);
 const originLayer = L.layerGroup().addTo(map);
