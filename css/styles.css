@@ -218,3 +218,23 @@ button.button { font: inherit; font-weight: 600; cursor: pointer; }
   .find { grid-template-columns: 1fr; }
   .square-map { max-width: 520px; }
 }
+
+/* ---------- Map embedded on the home page ---------- */
+html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
+.services { max-width: 1280px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem) 3.5rem; }
+.services h2 { font-family: var(--serif); font-size: clamp(1.7rem, 3.5vw, 2.3rem); line-height: 1.15; margin: 0 0 .5rem; }
+.services-intro { margin: 0 0 1.5rem; color: var(--ink-soft); max-width: 62ch; }
+.services .map-layout {
+  flex: none; height: 720px; min-height: 0;
+  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--paper);
+}
+.services .panel { height: 100%; }
+.services .panel-top { max-height: 50%; }
+.services #map { height: 100%; }
+@media (max-width: 860px) {
+  .services .map-layout { height: auto; grid-template-columns: 1fr; grid-template-rows: 420px auto; }
+  .services #map { height: 420px; order: -1; }
+  .services .panel { height: auto; }
+  .services .panel-top { max-height: none; }
+  .services .results { max-height: 60vh; }
+}
